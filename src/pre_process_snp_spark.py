@@ -73,10 +73,10 @@ def extract(x):
 
 
 def rddTranspose(set1):
-    rddT1 = set1.zipWithIndex().flatMap(lambda (x, i): [(i, j, e) for (j, e) in enumerate(x)])
-    rddT2 = rddT1.map(lambda (i, j, e): (j, (i, e))).groupByKey().sortByKey()
-    rddT3 = rddT2.map(lambda (i, x): sorted(list(x), cmp=lambda (i1, e1), (i2, e2): cmp(i1, i2)))
-    rddT4 = rddT3.map(lambda x: map(lambda (i, y): y, x))
+    rddT1 = set1.zipWithIndex().flatMap(lambda x_i: [(x_i[1], j, e) for (j, e) in enumerate(x_i[0])])
+    rddT2 = rddT1.map(lambda i_j_e: (i_j_e[1], (i_j_e[0], i_j_e[2]))).groupByKey().sortByKey()
+    rddT3 = rddT2.map(lambda i_x: sorted(list(i_x[1]), key=lambda t: t[0]))
+    rddT4 = rddT3.map(lambda x: [y for (i, y) in x])
     return rddT4
 
 
