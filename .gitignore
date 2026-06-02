@@ -1,0 +1,4 @@
+.aider*
+.devenv*
+.direnv*
+__pycache__/

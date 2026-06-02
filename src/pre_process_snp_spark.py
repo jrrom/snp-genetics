@@ -1,11 +1,5 @@
 from __future__ import print_function
-import sys
-import csv
 import datetime
-import time
-import glob
-import os, re
-import math
 from pyspark.sql import SparkSession
 
 import random
@@ -19,58 +13,7 @@ from pyspark import SparkContext
 import sklearn.metrics.pairwise
 rbf = sklearn.metrics.pairwise.rbf_kernel
 
-
-def extract(x):
-    res = [0 for row in range(13)]
-    res[0] = x[0]
-    index = 1
-    for i in range(len(x)):
-        if x[i] == "AA":
-            res[index+0] += 1
-            res[index+1] += i
-        elif x[i] == "TT":
-            res[index+3] += 1
-            res[index+4] += i
-        elif x[i] == "GG":
-            res[index+6] += 1
-            res[index+7] += i
-        elif x[i] == "CC":
-            res[index+9] += 1
-            res[index+10] += i
-
-    if res[index+0] == 0:
-        meanA = 0
-    else:
-        meanA = res[index+1] / res[index+0]
-    if res[index+3] == 0:
-        meanT = 0
-    else:
-        meanT = res[index+4] / res[index+3]
-    if res[index+6] == 0:
-        meanG = 0
-    else:
-        meanG = res[index+7] / res[index+6]
-    if res[index+9] == 0:
-        meanC = 0
-    else:
-        meanC = res[index+10] / res[index+9]
-
-    for i in range(len(x)):
-        if x[i] == "AA":
-            if res[index+0] != 0:
-                res[index+2] = ((i - meanA) ** 2) / res[index+0] + res[index+2]
-        elif x[i] == "TT":
-            if res[index+3] != 0:
-                res[index+5] = ((i - meanT) ** 2) / res[index+3] + res[index+5]
-        elif x[i] == "GG":
-            if res[index+6] != 0:
-                res[index+8] = ((i - meanG) ** 2) / res[index+6] + res[index+8]
-        elif x[i] == "CC":
-            if res[index+9] != 0:
-                res[index+11] = ((i - meanC) ** 2) / res[index+9] + res[index+11]
-
-    return res
-
+from .snp_functions import snp_single, snp_double
 
 def rddTranspose(set1):
     rddT1 = set1.zipWithIndex().flatMap(lambda x_i: [(x_i[1], j, e) for (j, e) in enumerate(x_i[0])])
@@ -80,13 +23,13 @@ def rddTranspose(set1):
     return rddT4
 
 
-def snp_spark(input_file, output_folder):
+def snp_spark(input_file, output_folder, snp_function):
     sc = SparkContext(appName="SNP-DataProcess")
     start_time = datetime.datetime.now()
 
     y1 = sc.textFile(input_file).map(lambda x: np.array([float(y) for y in x.split("\t") if y != ""]))
     y1 = rddTranspose(y1)
-    y1 = y1.map(lambda x: extract(x))
+    y1 = y1.map(lambda x: snp_function(x))
     y1.saveAsTextFile(output_folder)
 
     sc.stop()
