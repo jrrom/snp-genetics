@@ -4,6 +4,7 @@ import os
 import numpy as np
 from pathlib import Path
 from src.snp_functions import snp_single, snp_double
+from src.snp_spark import snp_spark
 
 def structure(entry_path):
     with open(entry_path, "r", encoding="UTF-8") as file:
@@ -29,12 +30,14 @@ if __name__ == "__main__":
         prog="Genetic Analysis",
         description="Find the SNP of the given data"
     )
-    parser.add_argument("directory", type=Path);
-    parser.add_argument("-t", "--type", choices=["single", "double"], required=True);
-
+    parser.add_argument("directory", type=Path)
+    parser.add_argument("-t", "--type", choices=["single", "double"], required=True)
+    parser.add_argument("-s", "--spark", action=argparse.BooleanOptionalAction, default=False)
+    
     args = parser.parse_args()
     directory: Path = args.directory
-    output_path: Path = directory / "output";
+    output_path: Path = directory / "output"
+    spark_path: Path  = directory / "spark"
 
     # ====== Select function type ======
     snp_functions = {
@@ -48,8 +51,18 @@ if __name__ == "__main__":
         os.mkdir(output_path)
 
     # ====== Create final list for each file given ======
+    if args.spark:
+        valid_files = [
+            str(entry) for entry in directory.iterdir() 
+            if entry.is_file() and entry.stat().st_size > 0
+        ]
+        spark_input_string = ",".join(valid_files)
+        
+        snp_spark(spark_input_string, str(spark_path), snp_function)
+        exit(0)
+
     for entry in os.listdir(directory):
-        if entry == "output": continue
+        if entry == "output" or "spark" in entry: continue
         entry_path = directory / entry
         
         if os.path.getsize(entry_path) == 0:
@@ -57,5 +70,6 @@ if __name__ == "__main__":
             continue
 
         linelist = structure(entry_path)
+            
         final_list  = snp_function(linelist)
         output(output_path / entry, final_list)

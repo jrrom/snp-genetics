@@ -1,18 +1,7 @@
-from __future__ import print_function
 import datetime
-from pyspark.sql import SparkSession
-
-import random
-from copy import copy, deepcopy
-
 import numpy as np
 from random import randint
-
-import pyspark
 from pyspark import SparkContext
-import sklearn.metrics.pairwise
-rbf = sklearn.metrics.pairwise.rbf_kernel
-
 from .snp_functions import snp_single, snp_double
 
 def rddTranspose(set1):
@@ -23,13 +12,18 @@ def rddTranspose(set1):
     return rddT4
 
 
-def snp_spark(input_file, output_folder, snp_function):
+def snp_spark(input_string, output_string, snp_function):
     sc = SparkContext(appName="SNP-DataProcess")
-    start_time = datetime.datetime.now()
+    start_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    y1 = sc.textFile(input_file).map(lambda x: np.array([float(y) for y in x.split("\t") if y != ""]))
+    y1 = sc.textFile(input_string) \
+        .filter(lambda line: line[0] == "T") \
+        .map(lambda line: [a for a in line.split("\t")]) \
+        .map(lambda line: line[11:])
+
     y1 = rddTranspose(y1)
-    y1 = y1.map(lambda x: snp_function(x))
-    y1.saveAsTextFile(output_folder)
 
+    y1 = y1.map(lambda x: snp_function([np.array(x)]))
+
+    y1.saveAsTextFile(output_string + str(start_time))
     sc.stop()
